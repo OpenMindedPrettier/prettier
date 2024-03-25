@@ -527,7 +527,6 @@ function returnArgumentHasLeadingComment(options, argument) {
       }
     }
   }
-
   return false;
 }
 

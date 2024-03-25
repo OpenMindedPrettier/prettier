@@ -28416,6 +28416,13 @@ var require_options2 = __commonJS2({
         description: "Print semicolons.",
         oppositeDescription: "Do not print semicolons, except at the beginning of lines which may need them."
       },
+      getSetOneLine: {
+        since: "1.0.0",
+        category: CATEGORY_JAVASCRIPT,
+        type: "boolean",
+        default: false,
+        description: "Put getter/setter content on one line"
+      },
       singleQuote: commonOptions.singleQuote,
       jsxSingleQuote: {
         since: "1.15.0",
@@ -29268,18 +29275,23 @@ var require_block = __commonJS2({
     function printBlock(path, options, print) {
       const node = path.getValue();
       const parts = [];
+      const {
+        kind
+      } = path.getParentNode();
+      const parent = path.getParentNode();
+      const gettersetter = options.getSetOneLine && (kind === "get" || kind === "set") && node.body.length === 1 && parent.end - parent.start <= options.printWidth;
       if (node.type === "StaticBlock") {
         parts.push("static ");
       }
       if (node.type === "ClassBody" && isNonEmptyArray(node.body)) {
-        const parent = path.getParentNode();
-        parts.push(printHardlineAfterHeritage(parent));
+        const parent2 = path.getParentNode();
+        parts.push(printHardlineAfterHeritage(parent2));
       }
-      if (options.allmanStyle) {
+      if (options.allmanStyle && !gettersetter) {
         parts.push(hardline);
       }
       parts.push("{");
-      if (isNonEmptyArray(node.body) && options.multiEmptyLine) {
+      if (isNonEmptyArray(node.body) && options.multiEmptyLine && !gettersetter) {
         const blockStartingLine = node.loc.start.line;
         const statementStartingLine = node.body[0].loc.start.line;
         if (hasComment(node.body[0]) && node.body[0].comments[0].loc.start.line < statementStartingLine) {
@@ -29294,16 +29306,18 @@ var require_block = __commonJS2({
         }
       }
       const printed = printBlockBody(path, options, print);
-      if (printed) {
+      if (printed && gettersetter) {
+        parts.push(indent([" ", printed]), hardline);
+      } else if (printed) {
         parts.push(indent([hardline, printed]), hardline);
       } else {
-        const parent = path.getParentNode();
+        const parent2 = path.getParentNode();
         const parentParent = path.getParentNode(1);
-        if (!(parent.type === "ArrowFunctionExpression" || parent.type === "FunctionExpression" || parent.type === "FunctionDeclaration" || parent.type === "ObjectMethod" || parent.type === "ClassMethod" || parent.type === "ClassPrivateMethod" || parent.type === "ForStatement" || parent.type === "WhileStatement" || parent.type === "DoWhileStatement" || parent.type === "DoExpression" || parent.type === "CatchClause" && !parentParent.finalizer || parent.type === "TSModuleDeclaration" || parent.type === "TSDeclareFunction" || node.type === "StaticBlock" || node.type === "ClassBody")) {
+        if (!(parent2.type === "ArrowFunctionExpression" || parent2.type === "FunctionExpression" || parent2.type === "FunctionDeclaration" || parent2.type === "ObjectMethod" || parent2.type === "ClassMethod" || parent2.type === "ClassPrivateMethod" || parent2.type === "ForStatement" || parent2.type === "WhileStatement" || parent2.type === "DoWhileStatement" || parent2.type === "DoExpression" || parent2.type === "CatchClause" && !parentParent.finalizer || parent2.type === "TSModuleDeclaration" || parent2.type === "TSDeclareFunction" || node.type === "StaticBlock" || node.type === "ClassBody")) {
           parts.push(hardline);
         }
       }
-      if (isNonEmptyArray(node.body) && options.multiEmptyLine) {
+      if (isNonEmptyArray(node.body) && options.multiEmptyLine && !gettersetter) {
         const blockEndingLine = node.loc.end.line;
         const bodyCount = node.body.length;
         const lastBody = node.body[bodyCount - 1];
@@ -29319,6 +29333,10 @@ var require_block = __commonJS2({
             parts.push(hardline);
           }
         }
+      }
+      if (gettersetter) {
+        parts.pop();
+        parts.push(" ");
       }
       parts.push("}");
       return parts;
