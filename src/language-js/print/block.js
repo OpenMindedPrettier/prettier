@@ -21,6 +21,8 @@ function printBlock(path, options, print) {
   const node = path.getValue();
   const parts = [];
 
+  const reorderClassMembers = (options.reorderClassMembers != "none" && node.type == "ClassBody");
+
   if (node.type === "StaticBlock") {
     parts.push("static ");
   }
@@ -36,7 +38,11 @@ function printBlock(path, options, print) {
 
   parts.push("{");
 
-  if (isNonEmptyArray(node.body) && options.multiEmptyLine) {
+  if (options.classMemberOrder != "none") {
+    reorderClassVariables(path, options);
+  }
+
+  if (isNonEmptyArray(node.body) && options.multiEmptyLine && !reorderClassMembers) {
     const blockStartingLine = node.loc.start.line;
     const statementStartingLine = node.body[0].loc.start.line;
 
@@ -56,6 +62,7 @@ function printBlock(path, options, print) {
   }
 
   const printed = printBlockBody(path, options, print);
+
   if (printed) {
     parts.push(indent([hardline, printed]), hardline);
   } else {
@@ -84,7 +91,7 @@ function printBlock(path, options, print) {
     }
   }
 
-  if (isNonEmptyArray(node.body) && options.multiEmptyLine) {
+  if (isNonEmptyArray(node.body) && options.multiEmptyLine && !reorderClassMembers) {
     const blockEndingLine = node.loc.end.line;
     const bodyCount = node.body.length;
     const lastBody = node.body[bodyCount - 1];
@@ -108,6 +115,31 @@ function printBlock(path, options, print) {
   parts.push("}");
 
   return parts;
+}
+
+function reorderClassVariables(path, options){
+  const nodeMembers = path.getValue().body;
+  const firstMembers = [];
+  const nextMembers = [];
+  let first_type = false;
+
+  if (options.classMemberOrder === "private first") {
+    first_type = true;
+  }
+  
+  for (let index in nodeMembers) {
+    const member = nodeMembers[index];
+    const { type } = member;
+    if (type.includes("Private") == first_type) { firstMembers.push(member); }
+    else { nextMembers.push(member); }
+  }
+
+  const sortedMembers = firstMembers.concat(nextMembers);
+
+  for (let ii in sortedMembers) {
+    path.getValue().body[ii] = sortedMembers[ii];
+  }
+
 }
 
 function printBlockBody(path, options, print) {

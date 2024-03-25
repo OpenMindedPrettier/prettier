@@ -108,6 +108,27 @@ module.exports = {
     default: false,
     description: "Use single quotes in JSX.",
   },
+  classMemberOrder: {
+    since: "1.0.0",
+    category: CATEGORY_JAVASCRIPT,
+    type: "choice",
+    default: "none",
+    description: "Print private class members before public class members",
+    choices: [
+      {
+        value: "none",
+        description: "Don't make any changes",
+      },
+      {
+        value: "private first",
+        description: "Print private members before public ones.",
+      },
+      {
+        value: "public first",
+        description: "Print public members before private ones.",
+      },
+    ],
+  },
   quoteProps: {
     since: "1.17.0",
     category: CATEGORY_JAVASCRIPT,
